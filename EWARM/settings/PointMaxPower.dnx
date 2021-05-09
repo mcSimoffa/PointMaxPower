@@ -9,7 +9,7 @@
         <LeaveTargetRunning>_ 0</LeaveTargetRunning>
     </StLinkDriver>
     <DebugChecksum>
-        <Checksum>3569738024</Checksum>
+        <Checksum>652912961</Checksum>
     </DebugChecksum>
     <Exceptions>
         <StopOnUncaught>_ 0</StopOnUncaught>
@@ -46,8 +46,8 @@
         <PcSampPOSTCNT>15</PcSampPOSTCNT>
         <PcSampIndex>0</PcSampIndex>
         <DataLogMode>0</DataLogMode>
-        <ITMportsEnable>0</ITMportsEnable>
-        <ITMportsTermIO>0</ITMportsTermIO>
+        <ITMportsEnable>1</ITMportsEnable>
+        <ITMportsTermIO>1</ITMportsTermIO>
         <ITMportsLogFile>0</ITMportsLogFile>
         <ITMlogFile>$PROJ_DIR$\ITM.log</ITMlogFile>
     </SWOTraceHWSettings>

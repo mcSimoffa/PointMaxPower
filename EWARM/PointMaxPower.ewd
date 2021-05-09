@@ -2,7 +2,7 @@
 <project>
 	<fileVersion>3</fileVersion>
 	<configuration>
-		<name>kness_test</name>
+		<name>PointMaxPower</name>
 		<toolchain>
 			<name>ARM</name>
 		</toolchain>

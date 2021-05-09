@@ -22,7 +22,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdbool.h>
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -37,6 +38,10 @@ typedef struct
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define SAMPLE_BUF_ELEM  3 //this value must be the half of 'hadc1.Init.NbrOfConversion' 
+#define INCREASE_PWM            ((int8_t)1)
+#define DECREASE_PWM            ((int8_t)(-1))
+#define LED_LIGHT               GPIO_PIN_RESET
+#define LED_DARK                GPIO_PIN_SET
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -48,8 +53,12 @@ typedef struct
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
+TIM_HandleTypeDef htim1;
+
 /* USER CODE BEGIN PV */
 __IO adc_sample_t samples_buf[SAMPLE_BUF_ELEM];
+bool debug_print_new_duty_cycle = true;
+uint16_t duty_cycle = PWM_DUTY_CYCLE_DEFAULT;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -57,6 +66,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 void sample_handling(ADC_HandleTypeDef *hadc);
 /* USER CODE END PFP */
@@ -96,10 +106,15 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_ADC1_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
   if (HAL_ADC_RegisterCallback(&hadc1, HAL_ADC_CONVERSION_COMPLETE_CB_ID, sample_handling) != HAL_OK)
     Error_Handler();
- 
+  
+  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, PWM_DUTY_CYCLE_DEFAULT);
+  
+  if (HAL_TIM_PWM_Start_IT(&htim1,  TIM_CHANNEL_2) != HAL_OK)
+    Error_Handler(); 
 
   /* USER CODE END 2 */
 
@@ -108,6 +123,11 @@ int main(void)
 
   while (1)
   {
+    if (debug_print_new_duty_cycle)
+    {
+      printf ("\nduty cycle = %d", duty_cycle);
+      debug_print_new_duty_cycle = false;
+    }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -246,6 +266,81 @@ static void MX_ADC1_Init(void)
 }
 
 /**
+  * @brief TIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM1_Init(void)
+{
+
+  /* USER CODE BEGIN TIM1_Init 0 */
+
+  /* USER CODE END TIM1_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
+
+  /* USER CODE BEGIN TIM1_Init 1 */
+
+  /* USER CODE END TIM1_Init 1 */
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 0;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1.Init.Period = 1024;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 512;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+  sBreakDeadTimeConfig.DeadTime = 0;
+  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM1_Init 2 */
+
+  /* USER CODE END TIM1_Init 2 */
+  HAL_TIM_MspPostInit(&htim1);
+
+}
+
+/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -276,14 +371,14 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(ONBOARD_LED_GPIO_Port, ONBOARD_LED_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(DUTY_CYCLE_LIMIT_LED_GPIO_Port, DUTY_CYCLE_LIMIT_LED_Pin, GPIO_PIN_SET);
 
-  /*Configure GPIO pin : ONBOARD_LED_Pin */
-  GPIO_InitStruct.Pin = ONBOARD_LED_Pin;
+  /*Configure GPIO pin : DUTY_CYCLE_LIMIT_LED_Pin */
+  GPIO_InitStruct.Pin = DUTY_CYCLE_LIMIT_LED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(ONBOARD_LED_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(DUTY_CYCLE_LIMIT_LED_GPIO_Port, &GPIO_InitStruct);
 
 }
 
@@ -295,11 +390,56 @@ void launch_single_adc_sample()
     Error_Handler();
 
 }
-//------------------------------------------------------------------------------
+/*------------------------------------------------------------------------------
+Function take an ADC simple array in global 'samples_buf', calculame average value
+of momentum I and U, calculate momentum Power and correct PWM duty cycle.
+If duty cycle take a limit a LED will light
+Related defines in main.h
+#define PWM_DUTY_CYCLE_DEFAULT 
+#define DUTY_STEP 
+#define DUTY_CYCLR_MAX
+#define DUTY_CYCLR_MIN
+------------------------------------------------------------------------------ */
 void sample_handling(ADC_HandleTypeDef *hadc)
 {
-    HAL_GPIO_TogglePin(ONBOARD_LED_GPIO_Port, ONBOARD_LED_Pin);
+  static uint16_t prev_U;
+  static uint32_t prev_P;
+  static bool is_first_cycle = true;
+  uint16_t average_I=0;
+  uint16_t average_U=0;
+  uint32_t average_P;
+  
+  //calculate average value of U and I
+  for (uint8_t i=0; i<SAMPLE_BUF_ELEM; i++)
+  {
+    average_I += samples_buf[i].current;
+    average_U += samples_buf[i].voltage;
+  }
+  average_I /= SAMPLE_BUF_ELEM;
+  average_U /= SAMPLE_BUF_ELEM;
+  
+  average_P = average_I * average_U;
+  if (!is_first_cycle)
+  {
+    int8_t result = (average_U > prev_U)? INCREASE_PWM : DECREASE_PWM;
+    result = (average_P > prev_P)? result : -result;
+    if( ((result>0) && (duty_cycle < DUTY_CYCLR_MAX - DUTY_STEP)) ||
+        ((result<0) && (duty_cycle > DUTY_CYCLR_MIN + DUTY_STEP)) )
+    {
+      duty_cycle += result * DUTY_STEP;
+      __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, duty_cycle);
+      debug_print_new_duty_cycle = true;
+      HAL_GPIO_WritePin(DUTY_CYCLE_LIMIT_LED_GPIO_Port, DUTY_CYCLE_LIMIT_LED_Pin, LED_DARK);
+    }
+    else
+      HAL_GPIO_WritePin(DUTY_CYCLE_LIMIT_LED_GPIO_Port, DUTY_CYCLE_LIMIT_LED_Pin, LED_LIGHT);
+  }
+  prev_U = average_U;
+  prev_P = average_P;
+  is_first_cycle = false;
+  
 }
+
 //------------------------------------------------------------------------------
 /* USER CODE END 4 */
 

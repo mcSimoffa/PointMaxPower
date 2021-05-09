@@ -50,6 +50,8 @@ extern "C" {
 
 /* USER CODE END EM */
 
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
@@ -58,10 +60,14 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define ONBOARD_LED_Pin GPIO_PIN_13
-#define ONBOARD_LED_GPIO_Port GPIOC
+#define DUTY_CYCLE_LIMIT_LED_Pin GPIO_PIN_13
+#define DUTY_CYCLE_LIMIT_LED_GPIO_Port GPIOC
 /* USER CODE BEGIN Private defines */
 #define PMP_TICK_PERIOD         500
+#define PWM_DUTY_CYCLE_DEFAULT  120
+#define DUTY_STEP               10
+#define DUTY_CYCLR_MAX          768
+#define DUTY_CYCLR_MIN          150
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
