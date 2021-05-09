@@ -1,6 +1,7 @@
 # PointMaxPower
 There are perfoming PMP (point maximal Power) optimization continiuosly.  
 # How connect:  
+I use STM32F103C8T6 mini board (blue pill), STM32CubeMX 6.2.1, EWARM IAR v9.10.1  
 PA6 - analog input for measuring a voltage   
 PA7 - analog input for measuring a current  
 PA9 - PWM output to invertor control  
